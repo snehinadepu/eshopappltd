@@ -1,216 +1,227 @@
-// const { findById } = require('../models/order');
 const Order = require('../models/order');
 const Product = require('../models/product');
-const Category = require('../models/category');
 const User = require('../models/user');
 const ErrorResponse = require('../utils/errorResponse');
 
-
-
-//display all orders with pagination
+// Display all orders with pagination
 exports.allOrders = async (req, res, next) => {
+  try {
+    const pageSize = 10;
+    const page = Number(req.query.pageNumber) || 1;
 
-    try {
+    const count = await Order.find({}).estimatedDocumentCount();
 
-        const pageSize = 10;
-        const page = Number(req.query.pageNumber) || 1;
+    const orders = await Order.find()
+      .populate("user", "name")
+      .sort({ createdAt: -1 })
+      .skip(pageSize * (page - 1))
+      .limit(pageSize);
 
-        // const count = await Order.count();
-        const count = await Order.find({}).estimatedDocumentCount();
+    res.status(200).json({
+      success: true,
+      orders,
+      page,
+      pages: Math.ceil(count / pageSize),
+      count,
+    });
+    next();
+  } catch (error) {
+    return next(new ErrorResponse('Server error', 500));
+  }
+};
 
-        const orders = await Order.find().populate("user", "name").sort({ createdAt: -1 })
-            .skip(pageSize * (page - 1))
-            .limit(pageSize)
-
-        res.status(200).json({
-            success: true,
-            orders,
-            page,
-            pages: Math.ceil(count / pageSize),
-            count,
-        })
-        next();
-    } catch (error) {
-        return next(new ErrorResponse('Server error', 500));
-    }
-}
-
-
-
-//display my order
+// Display my orders
 exports.ordersme = async (req, res, next) => {
-    try {
-        const orders = await Order.find({ user: req.user._id });
-        res.status(200).json({
-            success: true,
-            orders
-        })
-        next();
-    } catch (error) {
-        return next(new ErrorResponse('Server error', 500));
-    }
-}
+  try {
+    const orders = await Order.find({ user: req.user._id });
+    res.status(200).json({
+      success: true,
+      orders
+    });
+    next();
+  } catch (error) {
+    return next(new ErrorResponse('Server error', 500));
+  }
+};
 
-
-//display single order
+// Display single order
 exports.singleOrder = async (req, res, next) => {
+  try {
+    const singleOrder = await Order.findById(req.params.id);
+    res.status(200).json({
+      success: true,
+      singleOrder
+    });
+    next();
+  } catch (error) {
+    return next(new ErrorResponse('Server error', 500));
+  }
+};
 
-    try {
-        const singleOrder = await Order.findById(req.params.id);
-        res.status(200).json({
-            success: true,
-            singleOrder
-        })
-        next();
-    } catch (error) {
-        return next(new ErrorResponse('Server error', 500));
-    }
-}
-
-//display single order
+// Delete order (Admin)
 exports.deleteOrderAdmin = async (req, res, next) => {
+  try {
+    await Order.findByIdAndRemove(req.params.id);
+    res.status(200).json({
+      success: true,
+      message: "Order deleted"
+    });
+    next();
+  } catch (error) {
+    return next(new ErrorResponse('Server error', 500));
+  }
+};
 
-    try {
-        const deleteOrder = await Order.findByIdAndRemove(req.params.id);
-        res.status(200).json({
-            success: true,
-            message: "order deleted"
-        })
-        next();
-    } catch (error) {
-        return next(new ErrorResponse('Server error', 500));
-    }
-}
-
-//update order
+// Mark order as paid (Admin)
 exports.updateOrderAdmin = async (req, res, next) => {
-
-    try {
-        const order = await Order.findById(req.params.id);
-        if (Order) {
-            order.isPaid = true;
-        }
-        const updateOrder = await order.save();
-
-        res.status(200).json({
-            success: true,
-            order: updateOrder,
-            message: "order Paid"
-        })
-        next();
-    } catch (error) {
-        return next(new ErrorResponse('Server error', 500));
+  try {
+    const order = await Order.findById(req.params.id);
+    if (order) {
+      order.isPaid = true;
+      order.paidAt = Date.now();
     }
-}
+    const updatedOrder = await order.save();
 
-//delivered order
+    res.status(200).json({
+      success: true,
+      order: updatedOrder,
+      message: "Order marked as paid"
+    });
+    next();
+  } catch (error) {
+    return next(new ErrorResponse('Server error', 500));
+  }
+};
+
+// Mark order as delivered (Admin)
 exports.deliverOrderAdmin = async (req, res, next) => {
-
-    try {
-        const order = await Order.findById(req.params.id);
-        if (Order) {
-            order.isDelivered = true;
-            order.deliveredAt = Date.now();
-        }
-        const deliveredOrder = await order.save();
-
-        res.status(200).json({
-            success: true,
-            order: deliveredOrder,
-            message: "order Delivered"
-        })
-        next();
-    } catch (error) {
-        return next(new ErrorResponse('Server error', 500));
+  try {
+    const order = await Order.findById(req.params.id);
+    if (order) {
+      order.isDelivered = true;
+      order.deliveredAt = Date.now();
     }
-}
+    const deliveredOrder = await order.save();
 
+    res.status(200).json({
+      success: true,
+      order: deliveredOrder,
+      message: "Order delivered"
+    });
+    next();
+  } catch (error) {
+    return next(new ErrorResponse('Server error', 500));
+  }
+};
 
-// create orders
+// Create new order
 exports.createOrder = async (req, res, next) => {
-    try {
-        //const cookie = req.cookies['token'];
-        if (req.body.orderItems.length === 0) {
-            res.status(400).json({
-                message: "Cart is empty"
-            });
-        } else {
-            const order = new Order({
-                orderItems: req.body.orderItems,
-                shippingAddress: req.body.shippingAddress,
-                itemsPrice: req.body.itemsPrice,
-                shippingPrice: req.body.shippingPrice,
-                taxPrice: req.body.taxPrice,
-                totalPrice: req.body.totalPrice,
-                user: req.user._id
-            });
+  try {
+    if (req.body.orderItems.length === 0) {
+      return res.status(400).json({ message: "Cart is empty" });
+    } else {
+      const order = new Order({
+        orderItems: req.body.orderItems,
+        shippingAddress: req.body.shippingAddress,
+        itemsPrice: req.body.itemsPrice,
+        shippingPrice: req.body.shippingPrice,
+        taxPrice: req.body.taxPrice,
+        totalPrice: req.body.totalPrice,
+        user: req.user._id
+      });
 
-            const newOrder = await order.save();
-            //update order after purchase
-            for (const index in order.orderItems) {
-                const item = order.orderItems[index];
-                const product = await Product.findById(item.product);
-                product.countStock -= item.quantity;
-                await product.save();
-            }
+      const newOrder = await order.save();
 
-            res.status(201).json({
-                message: "New Order created",
-                newOrder
-            })
+      // Decrease stock
+      for (const item of order.orderItems) {
+        const product = await Product.findById(item.product);
+        if (product) {
+          product.countStock -= item.quantity;
+          await product.save();
         }
+      }
 
-    } catch (err) {
-        next(err);
+      res.status(201).json({
+        message: "New order created",
+        newOrder
+      });
     }
-}
+  } catch (err) {
+    next(err);
+  }
+};
 
-
-
-//order summary
+// Admin Order Summary
 exports.orderSumaryAdmin = async (req, res, next) => {
-    try {
-        const orders = await Order.aggregate([
-            {
-                $group: {
-                    _id: null,
-                    nbOrders: { $sum: 1 },
-                    totalSales: { $sum: '$totalPrice' },
-                },
-            },
-        ]);
+  try {
+    const orders = await Order.aggregate([
+      {
+        $group: {
+          _id: null,
+          nbOrders: { $sum: 1 },
+          totalSales: { $sum: '$totalPrice' },
+        },
+      },
+    ]);
 
-        const users = await User.aggregate([
-            {
-                $group: {
-                    _id: null,
-                    nbUsers: { $sum: 1 }
-                },
-            },
-        ]);
+    const users = await User.aggregate([
+      {
+        $group: {
+          _id: null,
+          nbUsers: { $sum: 1 },
+        },
+      },
+    ]);
 
-        const daylyOrders = await Order.aggregate([
-            {
-                $group: {
-                    _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-                    orders: { $sum: 1 },
-                    sales: { $sum: '$totalPrice' }
-                },
-            },
-        ]);
+    const daylyOrders = await Order.aggregate([
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          orders: { $sum: 1 },
+          sales: { $sum: '$totalPrice' },
+        },
+      },
+    ]);
 
-        res.status(200).json({
-            success: true,
-            orders,
-            users,
-            daylyOrders
+    res.status(200).json({
+      success: true,
+      orders,
+      users,
+      daylyOrders
+    });
+    next();
+  } catch (error) {
+    return next(error);
+  }
+};
 
-        })
-        next();
-    } catch (error) {
-        return next(error);
-        console.log(error);
+// ✅ Razorpay: Mark order as paid after verifying signature
+exports.markOrderPaid = async (req, res, next) => {
+  const { orderId, paymentId } = req.body;
+
+  try {
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
     }
-}
 
+    order.isPaid = true;
+    order.paidAt = Date.now();
+    order.paymentResult = {
+      id: paymentId,
+      status: "COMPLETED",
+      method: "Razorpay",
+    };
 
+    const updatedOrder = await order.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Payment marked as successful",
+      order: updatedOrder
+    });
+  } catch (error) {
+    return next(new ErrorResponse("Payment update failed", 500));
+  }
+};

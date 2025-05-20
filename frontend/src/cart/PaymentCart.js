@@ -5,7 +5,7 @@ import CheckOutSteps from '../component/CheckOutSteps'
 import { useSelector } from 'react-redux'
 import { toast } from 'react-toastify'
 //import { orderCreate } from '../action/orderAction'
-import StripeCheckoutButton from '../stripebutton/StripeButton'
+import RazorpayButton from '../RazorpayButton/RazorpayButton';
 import stripeCreditCard from '../images/stripe.png'
 
 
@@ -83,10 +83,16 @@ const PaymentCart = (props) => {
                                 <div className=""><b>Shipping Price:</b> ${cart.shippingPrice}</div>
                                 <div className=""><b>Tax price:</b> ${cart.taxPrice}</div>
                                 <div className=""><b>Total:</b> ${cart.totalPrice}</div>
-                                <div className=""> <img className="img-fluid imgstripe_style" src={stripeCreditCard} alt="stripe payment" /></div>
-                                <div className='addbtnstrip'><span className='addtocart '><StripeCheckoutButton price={cart.totalPrice} /></span></div>
-                                {/* onClick={generateOrder}  */}
+                                <div className="">
+                                    <img className="img-fluid imgstripe_style" src={stripeCreditCard} alt="payment" />
+                                </div>
+                                <div className='addbtnstrip'>
+                                    <span className='addtocart'>
+                                        <RazorpayButton price={cart.totalPrice} />
+                                    </span>
+                                </div>
                             </div>
+
                         </div>
                     </div>
 

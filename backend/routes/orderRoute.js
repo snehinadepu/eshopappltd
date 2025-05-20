@@ -12,6 +12,9 @@ const {
       orderSumaryAdmin } = require("../controllers/orderController");
 
 const { isAuthenticated, isAdmin } = require("../middleware/auth");
+const { markOrderPaid } = require("../controllers/orderController");
+
+
 
 //ROUTES    /API/ORDER/CREATE  (EX:)
 router.post("/order/create", isAuthenticated, createOrder);
@@ -23,7 +26,7 @@ router.delete("/orderdelete/admin/:id", isAuthenticated, isAdmin, deleteOrderAdm
 router.put("/orderupdate/admin/pay/:id", isAuthenticated, isAdmin, updateOrderAdmin);
 router.put("/orderdelivered/admin/:id", isAuthenticated, isAdmin, deliverOrderAdmin);
 router.get("/orders/summary", isAuthenticated, isAdmin, orderSumaryAdmin);
-
+router.put("/order/razorpay/pay", isAuthenticated, markOrderPaid);
 
 
 module.exports = router;
