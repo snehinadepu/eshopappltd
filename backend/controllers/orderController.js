@@ -9,7 +9,7 @@ exports.allOrders = async (req, res, next) => {
     const pageSize = 10;
     const page = Number(req.query.pageNumber) || 1;
 
-    const count = await Order.find({}).estimatedDocumentCount();
+    const count = await Order.countDocuments({});
 
     const orders = await Order.find()
       .populate("user", "name")
@@ -24,9 +24,8 @@ exports.allOrders = async (req, res, next) => {
       pages: Math.ceil(count / pageSize),
       count,
     });
-    next();
   } catch (error) {
-    return next(new ErrorResponse('Server error', 500));
+    next(new ErrorResponse('Server error', 500));
   }
 };
 
@@ -47,7 +46,7 @@ exports.ordersme = async (req, res, next) => {
 // Display single order
 exports.singleOrder = async (req, res, next) => {
   try {
-    const singleOrder = await Order.findById(req.params.id);
+    const singleOrder = await Order.findById(req.params.id).populate("user", "name email");
     res.status(200).json({
       success: true,
       singleOrder
@@ -197,11 +196,11 @@ exports.orderSumaryAdmin = async (req, res, next) => {
 
 // ✅ Razorpay: Mark order as paid after verifying signature
 exports.markOrderPaid = async (req, res, next) => {
-  const { orderId, paymentId } = req.body;
+  const orderId = req.params.id; // from URL param
+  const { paymentId } = req.body;
 
   try {
     const order = await Order.findById(orderId);
-
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
@@ -219,9 +218,10 @@ exports.markOrderPaid = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: "Payment marked as successful",
-      order: updatedOrder
+      order: updatedOrder,
     });
   } catch (error) {
     return next(new ErrorResponse("Payment update failed", 500));
   }
 };
+

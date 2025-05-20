@@ -9,14 +9,13 @@ const {
       deleteOrderAdmin,
       updateOrderAdmin,
       deliverOrderAdmin,
-      orderSumaryAdmin } = require("../controllers/orderController");
+      orderSumaryAdmin,
+      markOrderPaid,  // make sure this is imported
+} = require("../controllers/orderController");
 
 const { isAuthenticated, isAdmin } = require("../middleware/auth");
-const { markOrderPaid } = require("../controllers/orderController");
 
-
-
-//ROUTES    /API/ORDER/CREATE  (EX:)
+// existing routes ...
 router.post("/order/create", isAuthenticated, createOrder);
 router.get("/orders/me", isAuthenticated, ordersme);
 router.get("/orders/all", isAuthenticated, isAdmin, allOrders);
@@ -26,9 +25,8 @@ router.delete("/orderdelete/admin/:id", isAuthenticated, isAdmin, deleteOrderAdm
 router.put("/orderupdate/admin/pay/:id", isAuthenticated, isAdmin, updateOrderAdmin);
 router.put("/orderdelivered/admin/:id", isAuthenticated, isAdmin, deliverOrderAdmin);
 router.get("/orders/summary", isAuthenticated, isAdmin, orderSumaryAdmin);
-router.put("/order/razorpay/pay", isAuthenticated, markOrderPaid);
 
+// **Add this line here**
+router.put("/:id/pay", isAuthenticated, isAdmin, markOrderPaid);
 
 module.exports = router;
-
-

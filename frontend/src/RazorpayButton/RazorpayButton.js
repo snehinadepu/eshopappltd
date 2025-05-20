@@ -33,7 +33,7 @@ const RazorpayButton = ({ price }) => {
 
     try {
       const { data } = await axios.post('/api/payment/create-order', {
-        amount: price * 100, // in paisa
+        amount: price,
       });
 
       const { id: order_id, amount, currency } = data;
@@ -55,8 +55,7 @@ const RazorpayButton = ({ price }) => {
               razorpay_signature: response.razorpay_signature
             });
 
-            if (verifyRes.data.status === 'success') {
-              // Payment verified successfully, now create the order
+            if (verifyRes.data.success) {
               dispatch(orderCreate({ ...cart, orderItems: cart.cartItems }));
               history.push("/success");
             } else {
